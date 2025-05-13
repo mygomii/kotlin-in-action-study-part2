@@ -92,3 +92,69 @@ fun main() {
 - **양수/0/음수** 반환에 따라 <, ==, > 같은 연산자 지원
 - **멤버 함수**로 직접 구현하거나, **확장 함수**로도 활용 가능
 </details>
+
+
+<details>
+<summary><strong>9.3  컬렉션과 범위에 대해 쓸 수 있는 관례</strong></summary>
+- 컬렉션을 다룰 때 가장 많이 쓰는 연산은 인덱스를 사용해 원소를 읽거나 쓰는 연산과 어떤 값이 컬렉션에 속해 있는지 검사하는 연산임
+
+## 9.3.1 인덱스로 원소 접근: get과 set
+
+- 코틀린 컬렉션(`List`, `Map` 등)는 `operator fun get(index)` 와 `operator fun set(index, value`) 를 제공해, 인덱스 연산자([]) 문법을 사용할 수 있게 해 줌
+- **불변 컬렉션 vs 가변 컬렉션**
+    - `List<T>` 는 읽기 전용이므로 `get(index)` 만 지원
+    - `MutableList<T>` 는 `get` 과 `set` 둘 다 지원해 요소 변경이 가능
+
+## 9.3.2 어떤 객체가 컬렉션에 들어있는지 검사: in 관례
+
+- **`contains` 연산자 함수**
+- 컬렉션(List, Set, Map 등)에는 `operator fun contains(element: T): Boolean` 가 정의되어 있어, 특정 원소가 컬렉션에 포함되어 있는지를 검사할 수 있음
+- `in` 연산자는 내부적으로 `contains`호출
+
+```kotlin
+val nums = listOf(1, 2, 3)
+println(2 in nums)    // nums.contains(2) → true
+println(5 !in nums)   // !nums.contains(5) → true
+```
+
+- **불변 vs 가변 컬렉션**
+    - `List<T>` / `Set<T>` 등 읽기 전용 컬렉션에서도 `contains` 만 있어 `in` 연산이 가능
+    - `MutableList<T>` / `MutableSet<T>` 에도 동일하게 `in` / `!in` 사용 가능.
+- **Map의 키 검사**
+    - `Map<K, V>` 의 경우 `operator fun contains(key: K): Boolean` 가 키 검사용으로 정의되어 있음
+    
+    ```kotlin
+    val map = mapOf("a" to 1, "b" to 2)
+    if ("a" in map) { /* true */ }
+    ```
+    
+- **문자열과 범위에도 적용**
+
+```kotlin
+"ell" in "Hello"  // true
+```
+
+## 9.3.3 객체로부터 범위 만들기: rangeTo와 rangeUtil 관례
+
+- `a..b` 구문은 내부적으로 `a.rangeTo(b)`를 호출
+- ex) `a..b` → `a.rangeTo(b)` (끝값 포함)
+- `a until b` → 끝값 미포함 범위
+- 커스텀 타입에 rangeTo/until을 정의하면 for (x in …) 같은 범위 반복을 직접 지원할 수 있습니다.
+
+## 9.3.4 자신의 타입에 대해 루프 수행: iterator 관례
+
+- **for-루프와 iterator**
+    - Kotlin의 for (item in collection) 구문은 내부적으로 다음 과정을 거침
+        - 대상 객체에 `operator fun iterator(): Iterator<T>` 가 있는지 확인
+        - 반환된 `Iterator<T>`에서 `hasNext()`와 `next()`를 반복 호출
+- **Iterator 인터페이스**
+    
+    ```kotlin
+    interface Iterator<out T> {
+      fun hasNext(): Boolean
+      fun next(): T
+    }
+    ```
+    
+    - `hasNext()`가 `true`인 동안 `next()`를 호출해 순차적으로 요소를 꺼냄
+</details>
