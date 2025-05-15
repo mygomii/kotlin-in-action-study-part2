@@ -158,3 +158,32 @@ println(5 !in nums)   // !nums.contains(5) → true
     
     - `hasNext()`가 `true`인 동안 `next()`를 호출해 순차적으로 요소를 꺼냄
 </details>
+
+<details>
+<summary><strong>9.4 component 함수를 사용해 구조 분해 선언 제공</strong></summary>
+	
+- 구조 분해 선언를 사용하면 복합적인 값을 분해해서 별도의 여러 자역 변수를 한꺼번에 초기화할 수 있음
+- 복합적인 값을 **여러 변수로 한꺼번에 분해**해서 초기화하는 문법
+- 예: `val (name, age) = person`
+
+---
+
+- **작동 원리**
+    - 구조 분해 선언은 `componentN()` 함수들을 호출하여 동작함.
+    - 예를 들어, `val (a, b) = obj` → 내부적으로 `obj.component1()`과 `obj.component2()` 호출됨.
+
+---
+
+- **사용 조건**
+    - 클래스에 `componentN()` 함수가 정의되어 있어야 함.
+    - **`data class`**는 자동으로 `componentN()` 함수를 생성해줌.
+
+```kotlin
+class Point(val x: Int, val y: Int) {
+    operator fun component1() = x
+    operator fun component2() = y
+}
+
+val (x, y) = Point(10, 20)
+```
+</details>
