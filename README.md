@@ -187,3 +187,35 @@ class Point(val x: Int, val y: Int) {
 val (x, y) = Point(10, 20)
 ```
 </details>
+
+<details>
+<summary><strong>9.5 프로퍼티 접근자 로직 재활용: 위임 프로퍼티</strong></summary>
+	
+## 9.5.1 위임 프로퍼티의 기본 문법과 내부 동작
+
+- **프로퍼티의 getter/setter 로직을 다른 객체에 위임**하는 방식
+- 공통된 로직을 재사용할 수 있어 중복 제거와 코드 간결화에 유리함
+
+```kotlin
+val property by delegate
+```
+
+• `delegate`는 `getValue` / `setValue` 함수를 가진 객체여야 함
+
+## 9.5.2 위임 프로퍼티 사용: by lazy()를 사용한 지연 초기화
+
+- 지연 초기화는 객체의 일부분을 초기화하지 않고 남겨뒀다가 실제로 그 부분의 값이 필요할 경우 초기화할 때 흔히 쓰이는 패턴
+
+```kotlin
+val name: String by lazy {
+    println("계산 중...")
+    "Kotlin"
+}
+```
+
+- **표준 위임 프로퍼티 종류**
+    - `lazy` → 지연 초기화
+    - `observable` → 값 변경 감지
+    - `vetoable` → 변경 조건 검사
+    - `Delegates.notNull<T>()`→ 반드시 나중에 초기화돼야 할 값에 사용
+</details>
