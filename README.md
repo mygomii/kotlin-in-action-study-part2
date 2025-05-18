@@ -219,3 +219,145 @@ val name: String by lazy {
     - `vetoable` → 변경 조건 검사
     - `Delegates.notNull<T>()`→ 반드시 나중에 초기화돼야 할 값에 사용
 </details>
+
+<hr>
+
+<details>
+<summary><strong>10.1 다른 함수를 인자로 받거나 반환하는 함수 정의: 고차 함수 </strong></summary>
+	
+- 코틀린에서는 람다나 함수 참조를 사용해 함수를 값으로 표현 할 수 있음
+
+## 10.1.1 함수 타입은 람다의 파라미터 타입과 반환 타입을 지정한다.
+
+- 함수를 인자로 받거나, 함수를 반환하는 함수를 고차 함수라고 함
+- 코틀린에서는 람다식이나 함수 참조를 통해 함수를 값처럼 사용할 수 있음
+- 람다의 매개변수 타입과 반환 타입을 명시하여 사용.
+
+```kotlin
+val sum: (Int, Int) -> Int = { x, y -> x + y }
+```
+
+## 10.1.2 인자로 전달 받은 함수 호출
+
+- 고차 함수에서 함수를 인자로 전달받았다면, 해당 함수를 일반 함수처럼 호출하면 됨
+- 전달받은 함수도 ()를 붙여 호출할 수 있음
+
+```kotlin
+fun twoAndThree(operation: (Int, Int) -> Int): Int {
+    return operation(2, 3)
+}
+
+val sum = twoAndThree { a, b -> a + b }     // 5
+val product = twoAndThree { a, b -> a * b } // 6
+```
+
+- `operation`이라는 파라미터는 `(Int, Int) -> Int` 타입의 함수
+- `operation(2, 3)`처럼 일반 함수처럼 호출 가능
+
+## 10.1.3 자바에서 코틀린 함수 타입 사용
+
+- 코틀린의 함수 타입은 Java의 함수형 인터페이스와 호환됨.
+- Java에서는 코틀린 함수 타입을 직접 사용할 수는 없지만, Function 인터페이스나 람다로 전달 가능함.
+
+```kotlin
+// kotlin 
+fun process(operation: (Int, Int) -> Int): Int {
+    return operation(4, 2)
+}
+```
+
+```java
+//java
+int result = KotlinKt.process((a, b) -> a + b);
+```
+
+- SAM 변환 (Single Abstract Method)
+    - 자바에서는 함수형 인터페이스(메서드가 하나인 인터페이스)를 사용하여 코틀린 함수 타입을 전달받을 수 있음
+    - 자바의 람다는 이런 인터페이스를 구현한 익명 객체로 자동 변환됨 → SAM 변환
+
+```kotlin
+// kotlin 
+fun interface IntBinaryOp {
+    fun apply(x: Int, y: Int): Int
+}
+
+fun compute(op: IntBinaryOp): Int = op.apply(10, 5)
+```
+
+```java
+// java
+int result = KotlinKt.compute((x, y) -> x * y);
+```
+
+## 10.1.4 함수 타입의 파라미터에 대해 기본값을 지정할 수 있고, 널이 될 수도 있다.
+
+- 함수 타입 파라미터도 기본값 지정 가능
+    - 일반 파라미터처럼 함수 타입 파라미터에도 기본값을 설정할 수 있음
+    - 함수 인자를 생략하면 기본으로 지정된 함수가 사용됨
+
+```kotlin
+fun greet(message: String, formatter: (String) -> String = { it.uppercase() }) {
+    println(formatter(message))
+}
+
+greet("hello")                     // HELLO (기본값 사용)
+greet("hello") { it.reversed() }  // olleh
+```
+
+- 함수 타입 파라미터도 nullable 가능
+    - 함수 타입 파라미터에 `null`을 허용할 수도 있음.
+    - 이 경우에는 `null` 체크 후 호출 필요
+
+```kotlin
+fun greetNullable(message: String, formatter: ((String) -> String)? = null) {
+    val result = formatter?.invoke(message) ?: message
+    println(result)
+}
+
+greetNullable("hello")                        // hello
+greetNullable("hello") { it.capitalize() }    // Hello
+```
+
+## 10.1.5 함수를 함수에서 반환
+
+- 코틀린에서는 **함수를 반환값으로 사용할 수 있음**
+- 즉, **고차 함수는 함수를 반환**할 수도 있음
+- 반환 타입은 (파라미터) -> 반환값 형태의 **함수 타입**
+
+```kotlin
+fun operation(): (Int) -> Int {
+    return { it * 2 }
+}
+
+val result = operation()(3)  // 6
+```
+
+- `operation()`은 `(Int) -> Int` 타입의 함수를 반환
+- 반환된 함수를 즉시 호출: `operation()(3)`
+
+## 10.1.6 람다를 활용해 중복을 줄여 코드 재사용성 높이기
+
+- *공통된 코드 흐름(템플릿)*은 유지하고, 다른 동작만 람다로 전달하여 중복 제거
+- 템플릿 메서드 패턴을 람다로 간결하게 구현하는 방식
+
+```kotlin
+fun <T> withFileReader(file: File, block: (BufferedReader) -> T): T {
+    return file.bufferedReader().use { reader ->
+        block(reader)
+    }
+}
+```
+
+- `file.bufferedReader()`와 `use {}`는 **공통 로직**
+- 실제 동작은 `block` 람다로 전달 받음
+
+```kotlin
+val lines = withFileReader(File("data.txt")) { reader ->
+    reader.readLines()
+}
+
+val firstLine = withFileReader(File("data.txt")) { reader ->
+    reader.readLine()
+}
+```
+</details>
