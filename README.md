@@ -361,3 +361,54 @@ val firstLine = withFileReader(File("data.txt")) { reader ->
 }
 ```
 </details>
+
+<details>
+<summary><strong>10.2 인라인 함수를 사용해 람다의 부가 비용 없애기 </strong></summary>
+	
+- 보통 람다를 익명 클래스로 컴파일한다고 설명
+- 그렇지만 람다식마다 새로운 클래스가 생기고 람다가 변수를 캡처한 경우 람다 정의가 포함된 코드를 호출하는 시점마다 새로운 객체가 생긴다는 뜻이라는 사실
+- 이로 인해 부가 비용이 듬
+- 따라서 람다를 사용하는 구현은 똑같은 코드를 직접 실행하는 함수보다 절 효율 적
+
+## 10.2.1 인라이닝이 작동하는 방식
+
+- 어떤 함수를 `inline`으로 선언하면 . 그 함수의 본문이 인라인이 됨
+- 다른 말로 하면 함수를 호출하는 코드를 함수를 호출하는 바이트코드 재신에 함수 본문을 번역한 바이트코드로 컴파일 한다는 뜻
+
+```kotlin
+inline fun <T> synchronized(lock: Lock, action: () -> T): T {
+  lock.lock()
+  try {
+    return action()
+  } finally {
+    lock.unloack()
+  }
+}
+
+fun main() {
+   val l = ReentrantLock()
+   synchronized(1) {
+   // 
+   }
+}
+```
+
+- 자바에서는 임의의 객체 대해 `synchronized` 를 사용할 수 있지만 이함수는 `Lock` 클래스의 인스턴스를 요구한다는 점
+
+## 10.2.2 인라인 함수의 제약
+
+- **재귀 호출(recursion) 금지**
+    - 직접(recursive) 혹은 간접(recursive)으로 자기 자신을 호출할 수 없음
+    - 컴파일러가 호출 지점에 함수 본문을 무한히 복사하게 되어 코드 팽창(infinite inlining)이 발생하기 때문
+- **가상(virtual) 함수로 사용할 수 없음**
+    - `open`, `abstract`, `override` 키워드를 붙인 함수는 `inline`으로 선언할 수 없음
+    - 인터페이스나 추상 클래스의 멤버로도 선언할 수 없으며, 항상 `final` 상태여야 함
+- **리플렉션(reflection) 제한**
+    - 인라이닝된 함수 본문은 실제 바이트코드에 함수 호출 형태로 남아 있지 않기 때문에, 런타임에 :: 연산자로 참조하거나 `kotlin.reflect API`로 호출할 수 없음
+- **람다 파라미터의 반환(return) 제약**
+    - `inline` 함수 안에서 넘어온 람다 내에서는 “*비지역(non-local) 반환*” (return without label) 이 가능
+    - 하지만 `noinline` 으로 표시된 람다에는 비지역 반환이 불가능하며, `crossinline` 을 붙이면 “non-local return” 자체가 금지됩니다.
+- **지역(local) 클래스·함수 인라이닝 불가**
+    - `inline` 함수 내부에 정의된 지역 클래스나 지역 함수는 인라이닝되지 않음
+    - `inline` 함수는 어디까지나 호출 지점에 “본문”만 복사해 넣으므로, 지역 선언부 전체를 가져갈 수는 없음
+</details>
