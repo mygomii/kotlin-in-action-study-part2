@@ -412,3 +412,97 @@ fun main() {
     - `inline` 함수 내부에 정의된 지역 클래스나 지역 함수는 인라이닝되지 않음
     - `inline` 함수는 어디까지나 호출 지점에 “본문”만 복사해 넣으므로, 지역 선언부 전체를 가져갈 수는 없음
 </details>
+
+
+<details>
+<summary><strong>10.3 람다에서 반환: 고차 함수에서 흐름 제어</strong></summary>
+	
+## 10.3.1 람다 안의 retrun 문: 람다를 둘러싼 함수에서 반환
+
+```kotlin
+inline fun perform(times: Int, action: (Int) -> Unit) {
+    for (i in 1..times) {
+        action(i)
+    }
+    println("perform 끝")  // 이 코드는, 람다에서 비지역 반환이 일어나면 실행되지않음 
+}
+
+fun foo() {
+    perform(5) { i ->
+        if (i == 3) return        // non-local return: foo()를 즉시 종료
+        println("i = $i")
+    }
+    println("foo 끝")             // 이 줄은 호출되지 x 
+}
+
+fun main() {
+    foo()
+    println("main 계속 실행")    // foo()가 return으로 바로 나가버렸기 때문에, 여전히 실행
+}
+```
+
+## 10.3.2 람다로부터 반환: 레이블을 사용한 return
+
+- `inline 고차 함수`에 넘긴 람다에서 `return`을 하면 기본적으로 **비지역 반환(non-local return)** 으로 동작해, 람다를 감싼 함수 전체가 종료됨
+- 그런데 “람다 내부만 종료시키고 싶을 때” 는 **레이블(label)** 을 붙인 return 을 사용함
+
+```kotlin
+inline fun perform(times: Int, action: (Int) -> Unit) {
+    for (i in 1..times) {
+        action(i)
+    }
+    println("perform 끝")
+}
+
+fun exampleLabelReturn() {
+    perform(5) lambda@{ i ->
+        if (i == 3) return@lambda   // 이 return은 람다(lambda@)만 종료
+        println("i = $i")
+    }
+    println("exampleLabelReturn 끝")  // 이 줄도 실행됨
+}
+
+fun main() {
+    exampleLabelReturn()
+}
+```
+
+## 10.3.3 익명 함수: 기본적으로 로컬 return
+
+- `inline` 함수에 넘겨줄 때 람다 대신 **익명 함수**(anonymous function)를 사용하면, 그 안의 `return`은 언제나 **로컬 반환(local return)** 으로 동작
+- 익명 함수 내부에서 return이 호출되면 **익명 함수 자체만** 빠져나가고, 이를 감싼 호출 함수나 상위 함수 전체는 종료되지 않음
+
+```kotlin
+inline fun perform(times: Int, action: (Int) -> Unit) {
+    for (i in 1..times) {
+        action(i)
+    }
+    println("perform 끝")
+}
+
+fun exampleAnonymousFunction() {
+    perform(5, fun(i: Int) {
+        if (i == 3) {
+            println("i == 3: 익명 함수에서 return")  
+            return    //  로컬 반환: 익명 함수만 종료
+        }
+        println("i = $i")
+    })
+    println("exampleAnonymousFunction 끝")  // 이 줄도 정상 실행
+}
+
+fun main() {
+    exampleAnonymousFunction()
+}
+
+/*
+i = 1
+i = 2
+i == 3: 익명 함수에서 return
+i = 4
+i = 5
+perform 끝
+exampleAnonymousFunction 끝
+*/
+```
+</details>
