@@ -506,3 +506,82 @@ exampleAnonymousFunction 끝
 */
 ```
 </details>
+
+<hr>
+<details>
+<summary><strong>11.1 타입 인자를 받는 타입 만들기: 제네릭 타입 파라미터</strong></summary>
+	
+- 제네릭스를 사용하면 타입 파라미터를 받는 타입을 정의할 수 있음
+
+## 11.1.1 제네릭 타입과 함께 동작하는 함수와 프로퍼티
+
+- 일반 클래스와 마찬가지로, 제네릭 클래스 안의 멤버 함수 시그니처에 T를 마음껏 쓸 수 있음
+
+```kotlin
+class Box<T>(private val value: T) {
+    // T를 반환하는 함수
+    fun getValue(): T = value
+
+    // T를 파라미터로 받는 함수
+    fun replace(newValue: T): Box<T> = Box(newValue)
+}
+```
+
+## 11.1.2 제네릭 클래스를 홑화살괄호 구문을 사용해 선언한다
+
+- 클래스·인터페이스·함수 이름 뒤에 <T>(또는 <A, B> 등)로 타입 파라미터 선언. 생성 시 <Int>처럼 명시하거나, 타입 추론으로 생략 가능
+
+```kotlin
+// 쌍(pair)을 담는 제네릭 클래스
+class PairBox<A, B>(val first: A, val second: B)
+
+// 함수에도 제네릭 선언 가능
+fun <T> singleton(item: T): List<T> = listOf(item)
+
+// 사용 예
+val p: PairBox<String, Int> = PairBox("age", 30)
+val list = singleton(true)     // List<Boolean>
+```
+
+## 11.1.3 제네릭 클래스나 함수가 사용할 수 있는 타입 제한: 타입 파라미터 제약
+
+- SuperType 문법으로 T가 특정 타입(또는 인터페이스)을 상속/구현하도록 제한. where 절로 다중 제약도 가능.
+
+```kotlin
+// Comparable을 구현한 타입만 허용하는 정렬 리스트
+class SortedList<T : Comparable<T>> {
+    private val elements = mutableListOf<T>()
+    fun add(item: T) {
+        elements.add(item)
+        elements.sort()
+    }
+    fun all(): List<T> = elements
+}
+
+// Number 타입만 허용하는 함수
+fun <T : Number> half(value: T): Double = value.toDouble() / 2
+
+// 사용 예
+val sl = SortedList<Int>()
+sl.add(5); sl.add(2); sl.add(8)
+println(sl.all())           // [2, 5, 8]
+println(half(9))            // 4.5
+```
+
+## 11.1.4 명시적으로 타입 파라미터를 널이 될 수 없는 타입으로 표시해서 널이 될수 있는 타입 인자 제외시키기
+
+- 본 <T>는 nullable(Any?)도 허용. T : Any로 제한해 non-null 타입만 받도록 설정
+
+```kotlin
+// nullable 허용 버전: Box<String?> 가능
+class NullableBox<T>(val value: T)
+
+// non-null 전용 버전: Box<String?> 불가
+class NotNullBox<T : Any>(val value: T)
+
+// 사용 예
+val nb1 = NullableBox<String?>(null)   // 허용
+// val nb2 = NotNullBox<String?>(null) // 컴파일 에러!
+val nb3 = NotNullBox("Hello")         // OK
+```
+</details>
