@@ -585,3 +585,106 @@ val nb1 = NullableBox<String?>(null)   // 허용
 val nb3 = NotNullBox("Hello")         // OK
 ```
 </details>
+
+<details>
+<summary><strong>11.2 실행 시점 제네릭스 동작: 소거된 타입 파라미터와 실체화된 타입 파라미터</strong></summary>
+	
+## 11.2.1 실행 시점에 제네릭 클래스의 타입 정보를 찾을 때 한계: 타입 검사와 캐스팅
+
+- 제네릭은 컴파일 시점에만 타입 정보를 유지하고, 실행 시점에는 타입 정보가 지워짐 이걸 `타입 소거(Type Erasure)` 라고 한다.
+- 따라서 `List<String>`과 `List<Int>`는 실행 시점에는 동일한 타입(List) 으로 간주됨
+- 이로 인해 발생하는 대표적인 제약
+    - 타입 검사 시 구체적인 타입 파라미터를 사용할 수 없음
+    
+    ```kotlin
+    if (value is List<String>) // ❌ 경고 발생: 실행 시점에 타입 정보 없음
+    ```
+    
+    - **캐스팅** 시에도 타입 파라미터는 무시됨
+    
+    ```kotlin
+    val strings = value as List<String> // 경고는 없지만, 런타임에 타입 체크 안됨
+    ```
+    
+
+**???*캐스팅 시 타입 파라미터 무시됨 — 왜 문제가 되나???***
+
+- Kotlin의 **제네릭 타입 파라미터는 실행 시점에 지워짐** → **타입 소거(Type Erasure)**
+
+```kotlin
+val strings = value as List<String>
+```
+
+- `value`가 실제로 `List<Any>`이거나 `List<Int>`라도 컴파일러는 경고 없이 통과함
+- 하지만 런타임에는 `ClassCastException`이 발생할 수 있음.
+    
+    왜냐면 *JVM은 value가 List인지까지만 알고*, 그 안에 어떤 타입이 들어있는지는 모름.
+    
+
+- `as List<String>` 같이 **구체적인 제네릭 타입으로 캐스팅하는 건 매우 위험**함.
+- *타입 안전성을 확보하려면 → reified 키워드 사용하거나, 타입 체크를 피해 로직을 설계해야 함*
+
+## 11.2.2 실체화된 타입 파라미터를 사용하는 함수는 타입 인자를 실행 시점에 언급할 수 있다
+
+- 앞에서 본 것처럼, 일반적인 제네릭은 타입 소거(Type Erasure) 때문에 실행 시점에 타입 정보를 알 수 없음.
+- 그러나 inline 함수의 타입 파라미터에 `reified`를 붙이면, 실행 시점에도 타입 정보를 사용할 수 있음.
+- 이를 통해 다음과 같은 작업이 가능해짐:
+    - `is T`
+    - `T::class`
+    - `T::class.java`
+
+```kotlin
+inline fun <reified T> printTypeName(value: Any) {
+    if (value is T) {
+        println("value is of type ${T::class.simpleName}")
+    } else {
+        println("value is NOT of type ${T::class.simpleName}")
+    }
+}
+```
+
+- ***왜 inline 이 필요할까?***
+    - `reified`는 **타입 정보를 바이트코드에 포함시켜야 하므로**, 반드시 함수가 `inline` 이어야 함
+    - `inline` 없이 `reified`만 쓰면 컴파일 오류 발생
+
+## 11.2.3 클래스 참조를 실체화된 타입 파라미터로 대신함으로써 java.lang.Class 파라미터 피하기
+
+- 자바 스타일의 함수에서 타입 정보를 실행 시점에 사용하려면 보통 이렇게 함
+
+```java
+fun <T> loadService(clazz: Class<T>): T {
+    return clazz.getDeclaredConstructor().newInstance()
+}
+```
+
+- 코틀린에서는 `reified`를 쓰면 `Class<T>` 없이도 가능
+
+```kotlin
+inline fun <reified T> loadService(): T {
+    return T::class.java.getDeclaredConstructor().newInstance()
+}
+```
+
+- `T::class.java`는 **실체화된 타입 파라미터 T가 있어야만 가능**.
+- 더 간결하고 타입 안전하며, **불필요한 인자 전달 없이 구현 가능**.
+
+## 11.2.4 실체화된 타입 파라미터가 있는 접근자 정의
+
+- Kotlin에서는 프로퍼티의 getter나 setter에 inline 함수와 reified 타입 파라미터를 사용할 수 있음
+- 이를 통해 특정 타입인지 검사하거나 타입에 따라 동작을 다르게 하는 로직을 프로퍼티처럼 정의할 수 있음
+
+```kotlin
+val <T> List<T>.firstElementType: String
+    inline get() = T::class.simpleName ?: "Unknown"
+```
+
+- 하지만 위 코드는 **컴파일되지 않음**.
+- 왜냐하면 **`reified`는 inline ``함수에서만 사용할 수 있는데**, 일반 프로퍼티의 `getter`는 `inline`이 아니기 때문
+
+```kotlin
+inline val <reified T> List<T>.typeName: String
+    get() = T::class.simpleName ?: "Unknown"
+```
+
+- 실제로는 **프로퍼티처럼 보이지만 `inline` 함수 형태**로 만들어야 함
+</details>
