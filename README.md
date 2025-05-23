@@ -688,3 +688,82 @@ inline val <reified T> List<T>.typeName: String
 
 - 실제로는 **프로퍼티처럼 보이지만 `inline` 함수 형태**로 만들어야 함
 </details>
+
+<details>
+<summary><strong>11.3 변성은 인자를 함수에 넘겨도 안전한지 판단하게 해준다</strong></summary>
+
+- 변성 개념은 `List<String>`과 `List<Any>` 같이 기저 타입이 같고 타입 인자가 다른 여러 타입이 어떤 관계가 있는지 설명하는 개념
+
+## 11.3.1 변성은 인자를 함수에 넘겨도 안전한지 판단하게 해준다.
+
+- 코틀린의 **제네릭은 기본적으로 공변(covariant)하지 않음**
+    
+    예를 들어 List<String>은 List<Any>의 하위 타입이 아님
+    
+- 하지만 우리가 알고 있는 일반적인 타입 상속 관계(예: String → Any)와 달리, 제네릭 타입은 **타입 인자가 달라지면 무관한 타입으로 간주됨**
+
+```kotlin
+val strings = listOf("a", "b", "c")
+printContents(strings) // 컴파일 오류 발생!
+```
+
+- 이유는 List<Any>와 List<String>은 별개의 타입으로 간주되므로, 타입 안전성 보장을 위해 허용되지 않음.
+
+## 11.3.2 클래스, 타입, 하위 타입
+
+- 클래스와 타입은 다름 코틀린에서는 한 클래스가 여러 타입을 가질 수 있음
+- 특히 제네릭 클래스의 경우, 타입 인자에 따라 서로 다른 “타입”으로 간주됨
+
+```kotlin
+class Box<T>(val value: T)
+```
+
+- `Box<Int>` , `Box<String>` , `Box<Any>`
+
+## 11.3.3 공변성은 하위 타입 관계를 유지한다.
+
+- 공변성(covariance)
+    - 하위 타입 관계가 유지되는 것을 의미함.
+    - 즉, `String`이 `Any`의 하위 타입이라면, `Producer<String>`이 `Producer<Any>`의 하위 타입이 되도록 허용하는 것.
+
+```kotlin
+interface Producer<out T> {
+    fun produce(): T
+}
+```
+
+- `out T`는 *T를 반환(출력)*하는 데만 사용된다는 뜻.
+- 코틀린 컴파일러는 T가 출력 전용(produced-only) 으로만 쓰인다는 걸 보장할 수 있으면 공변성을 허용함
+- 이로 인해 하위 타입 관계가 유지될 수 있음
+- 왜 공변성이 필요한가?
+    - 타입 인자가 *읽기 전용(read-only)* 으로 사용될 때는 공변성 적용이 완전 안전
+    - 따라서 `List<out T>`, `Sequence<out T>`처럼 코틀린의 표준 라이브러리에서도 적극적으로 사용됨
+
+## 11.3.4 반공변성은 하위 타입 관계를 뒤집는다.
+
+- 반공변성(Contravariance)이란?
+    - 일반적으로 `String`은 `Any`의 하위 타입이야.
+    - 그런데 `Consumer<Any>`가 `Consumer<String>`의 하위 타입이 되는 걸 반공변성이라 한다.
+    - 즉, 타입 관계가 뒤집힌다는 뜻.
+- 왜 타입 관계가 뒤집힐까?
+    - `Consumer<T>`는 값을 받기만(consumes) 하는 역할이기 때문에
+        
+        → 더 일반적인 타입이어야 안전함
+        
+    - 예를 들어 `Consumer<Any>`는 모든 타입을 받을 수 있으니, `Consumer<String>`이 필요한 곳에 넣어도 문제 없이 동작할 수 있어.
+
+```kotlin
+interface Consumer<in T> {
+    fun consume(item: T)
+}
+```
+
+- `in T`는 *T를 입력 전용(consume-only)* 으로 사용하겠다는 의미
+- 반공변성 적용을 통해 타입 관계를 뒤집을 수 있게 허용함
+
+| **구분** | **키워드** | **방향성** | **설명** |
+| --- | --- | --- | --- |
+| 공변성 | out | 하위 → 상위 | 읽기 전용: Producer<String> → Producer<Any> |
+| 반공변성 | in | 상위 → 하위 | 쓰기 전용: Consumer<Any> → Consumer<String> |
+| 무변성 | 없음 | 관계 없음 | Box<String> ≠ Box<Any> |
+</details>
