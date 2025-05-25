@@ -767,3 +767,153 @@ interface Consumer<in T> {
 | 반공변성 | in | 상위 → 하위 | 쓰기 전용: Consumer<Any> → Consumer<String> |
 | 무변성 | 없음 | 관계 없음 | Box<String> ≠ Box<Any> |
 </details>
+
+<hr>
+
+<details>
+<summary><strong>12.1 어노테이션 선언과 적용</strong></summary>
+	
+## 12.1.1 어노테이션을 적용해 선언에 표지 남기기
+
+- **@Test**
+    - 테스트 함수임을 표시하는 어노테이션
+    - 코틀린에서 **JUnit** 기반의 테스트를 실행할 때 사용
+    - 이 어노테이션이 붙은 함수는 **테스트 프레임워크가 자동으로 실행**
+
+```kotlin
+import org.junit.Test
+import kotlin.test.assertEquals
+
+class MyTests {
+
+    @Test
+    fun addition_isCorrect() {
+        assertEquals(4, 2 + 2)
+    }
+}
+```
+
+- **`JUnit4`**:  `org.junit.Test`
+- **`JUnit5`**에서는 `@org.junit.jupiter.api.Test` 사용
+- 코틀린에서는 `kotlin.test.Test`도 제공됨 (멀티플랫폼에서 사용 가능)
+
+- **@Deprecated**
+    - **더 이상 사용하지 말아야 할 선언**에 붙이는 어노테이션
+    - 해당 API가 **구식이거나 위험하므로 대체 API를 사용하라**는 의도 전달
+
+```kotlin
+@Deprecated("이 함수는 사용하지 마세요. use newFunction() instead.", ReplaceWith("newFunction()"))
+fun oldFunction() {
+    println("Old")
+}
+
+fun newFunction() {
+    println("New")
+}
+```
+
+- **`ReplaceWith` 사용**
+- `ReplaceWith("newFunction()")`을 지정하면, IDE가 자동으로 ***빠르게 치환 제안***해 줌
+
+| @Deprecated | 일반적인 사용 중단 표시 |
+| --- | --- |
+| @Deprecated(message, ReplaceWith(...)) | 대체 API 제안 포함 |
+| @Deprecated(level = DeprecationLevel.ERROR) | 아예 **컴파일 오류**로 막을 수도 있음 |
+
+## 12.1.2 어노테이션이 참조할 수 있는 정확한 선언 지정: 어노테이션 타킷
+
+- 어노테이션을 정의할 때, 어디에 사용할 수 있는지 명확히 지정할 수 있어야 함
+- 이를 위해 코틀린은 `@Target` 어노테이션을 사용함.
+
+```kotlin
+@Target(AnnotationTarget.FUNCTION)
+annotation class MyAnnotation
+```
+
+- 이렇게 하면 MyAnnotation은 함수에만 사용 가능하게 제한됨
+
+| **타깃 종류** | **설명** |
+| --- | --- |
+| CLASS | 클래스 또는 객체 선언 |
+| ANNOTATION_CLASS | 어노테이션 클래스 |
+| TYPE_PARAMETER | 타입 파라미터 (예: <T>) |
+| PROPERTY | 프로퍼티 전체 |
+| FIELD | 자바 필드 (직렬화용 등) |
+| CONSTRUCTOR | 생성자 |
+| FUNCTION | 함수 |
+| VALUE_PARAMETER | 함수 파라미터 |
+| EXPRESSION | 식(expression) |
+| FILE | 파일 전체 |
+| TYPE | 타입 사용 위치 (예: 제네릭, 타입 캐스트 등) |
+| LOCAL_VARIABLE | 지역 변수 |
+| PROPERTY_GETTER / SETTER | 프로퍼티 접근자(get, set) |
+
+## 12.1.3 어노테이션을 활용해 JSON 직렬화 제어
+
+- JSON 직렬화/역직렬화 시 어떤 프로퍼티를 포함할지/무시할지, 어떤 이름으로 매핑할지를 어노테이션을 통해 제어할 수 있음.
+- 코틀린에서는 `@Serializable`, `@SerialName`, `@Transient` 등을 통해 직렬화 동작을 정밀하게 설정할 수 있음.
+
+## 12.1.4 어노테이션 선언
+
+- 코틀린에서는 직접 어노테이션을 선언할 수 있음
+- 자바 스타일과 유사하지만, 코틀린만의 선언 방식과 제한이 있음.
+
+```kotlin
+annotation class MyAnnotation
+```
+
+- `class` 앞에 `annotation` 키워드를 붙이면 어노테이션이 됨
+- **`어노테이션 클래스`는 생성자 파라미터를 가질 수 있음**
+
+```kotlin
+annotation class JsonName(val name: String)
+
+@JsonName("user_name")
+data class User(val name: String)
+```
+
+- `@JsonName("user_name")` → 어노테이션에 전달된 값은 런타임에 활용 가능
+
+## 12.1.5 메타어노테션: 어노테이션을 처리하는 방법 제어
+
+- 메타어노테이션 자체에도 어노테이션을 붙일 수 있음. 이를 메타어노테이션이라 함.
+- 대표적으로 다음 3가지가 중요함
+    - **`@Target` -  어노테이션을 어디에 적용할 수 있는지 정의**
+    
+    ```kotlin
+    @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
+    annotation class Example
+    ```
+    
+
+- **`@Retention` -** 어노테이션 정보가 **언제까지 유지되는지** 정의
+    - 어노테이션 정보가 **언제까지 유지되는지** 정의
+    
+    ```kotlin
+    @Retention(AnnotationRetention.RUNTIME)
+    annotation class Example
+    ```
+    
+    | SOURCE | 컴파일 시까지만 존재. 바이트코드에는 없음 |
+    | --- | --- |
+    | BINARY | 바이트코드엔 있으나 리플렉션 불가 |
+    | RUNTIME | 런타임에도 유지, 리플렉션으로 접근 가능 |
+- **`@Repeatable` -**  어노테이션을 **같은 선언에 여러 번 사용할 수 있게 허용**
+    
+    ```kotlin
+    @Repeatable
+    @Target(AnnotationTarget.CLASS)
+    annotation class Tag(val name: String)
+    
+    @Tag("A")
+    @Tag("B")
+    class MyClass
+    ```
+    
+
+## 12.1.7 어노테이션 파라미터로 제네릭 클래스 받기
+
+- 어노테이션은 파라미터로 클래스 타입을 받을 수 있음
+- 하지만 자바 및 코틀린 어노테이션의 제약으로 인해, 제네릭 타입 인자를 직접 명시할 수는 없음
+- 대신 Class<*> 형태로 원시 타입(Raw Type) 또는 구체화된 타입을 전달
+</details>
