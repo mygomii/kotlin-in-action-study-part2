@@ -917,3 +917,92 @@ data class User(val name: String)
 - 하지만 자바 및 코틀린 어노테이션의 제약으로 인해, 제네릭 타입 인자를 직접 명시할 수는 없음
 - 대신 Class<*> 형태로 원시 타입(Raw Type) 또는 구체화된 타입을 전달
 </details>
+
+
+<details>
+<summary><strong>12.2 리플렉션: 실행 시점에 코틀린 객체 내부 관찰 </strong></summary>
+	
+- `리플렉션(Reflection)`은 코드를 실행 중에 탐색하거나 수정할 수 있는 기능
+- 코틀린에서는 `kotlin.reflect` 패키지를 통해 리플렉션 기능을 제공함
+- 이를 활용하면, 클래스 이름으로 객체를 만들거나, 프로퍼티 이름으로 값을 읽고 쓸 수 있음
+
+## 12.2.1 코틀린 리플렉션 API: KClass, KCallable, KFunction, KProperty
+
+- **KClass**
+    - 코틀린 클래스에 대한 메타데이터를 담는 객체.
+    - `String::class`, `MyClass::class`처럼 사용.
+    - 자바의 `Class<T>`와 유사하지만, 코틀린 타입 시스템과 연동됨.
+    - `KClass`를 통해 클래스 이름, 생성자, 멤버, 상속 계층 등을 조회 가능.
+    
+    ```kotlin
+    val kClass = String::class
+    println(kClass.simpleName) // 출력: String
+    ```
+    
+
+- **KCallable**
+    - 호출 가능한 객체의 공통 상위 타입.
+    - `KFunction`과 `KProperty`를 모두 포함하는 슈퍼타입.
+    - 함수, 프로퍼티 모두를 **일관되게 다루기 위해 사용**됨.
+    
+    ```kotlin
+    val callables = String::class.members.filterIsInstance<KCallable<*>>()
+    ```
+    
+- **KFunction**
+    - 코틀린 함수에 대한 리플렉션 정보를 제공.
+    - name, parameters, returnType, call(), invoke() 등의 API로 함수 호출 가능.
+    
+    ```kotlin
+    fun greet(name: String) = "Hello, $name"
+    val func = ::greet
+    println(func.call("Kotlin")) // 출력: Hello, Kotlin
+    ```
+    
+- **KProperty**
+    - 코틀린 프로퍼티를 나타냄 (val, var)
+    - getter, setter, name, returnType, get(instance) 등의 정보를 제공.
+    
+    ```kotlin
+    data class Person(val name: String)
+    val prop = Person::name
+    println(prop.get(Person("Alice"))) // 출력: Alice
+    ```
+    
+
+| **API 요소** | **설명** | **예시** |
+| --- | --- | --- |
+| KClass | 클래스에 대한 메타정보 | MyClass::class |
+| KCallable | 호출 가능한 모든 요소의 공통 타입 | 함수/프로퍼티 탐색 시 사용 |
+| KFunction | 함수 리플렉션 정보 | ::myFunc.call(...) |
+| KProperty | 프로퍼티 리플렉션 정보 | ::myProp.get(obj) |
+
+## 12.2.2 리플렉션을 사용해 객체 직렬화 구현
+
+- 리플렉션을 이용하면 객체의 프로퍼티 목록을 실행 시점에 탐색할 수 있음.
+- 이를 통해 객체를 자동으로 JSON 등의 문자열 형태로 직렬화할 수 있음.
+- 코틀린의 `kotlin.reflect` API (KClass, KProperty, etc.)를 활용하면, 직접 JSON 직렬화기를 구현할 수 있음.
+
+## 12.2.3 어노테이션을 활용해 직렬화 제어
+
+- `kotlin.reflect`로 객체의 프로퍼티를 탐색하고,
+- 각 프로퍼티에 붙은 어노테이션을 읽어,직렬화 시 제외하거나 이름을 바꾸는 등의 조건부 로직을 구현할 수 있음.
+- `@JsonExclude` – 특정 프로퍼티 무시
+- `@JsonName` – 이름 매핑
+
+## 12.2.4 JSON 파싱과 객체 역직렬화
+
+- JSON 문자열을 Kotlin 객체로 자동 변환(역직렬화) 하려면
+    - JSON 파싱
+    - 적절한 클래스 찾기
+    - 해당 클래스의 생성자 파라미터에 JSON 값을 매핑
+    - 이를 위해 Kotlin에서는 리플렉션 API + 생성자 호출 + 어노테이션 처리를 활용할 수 있음
+
+## 12.2.5 최종 역질렬화 단계: callBy()와 리플렉션을 사용해 객체 만들기
+
+- 이전 단계들에서 준비한 데이터(`JSON → Map<String, String>` 형태)를 이제 실제 Kotlin 객체로 생성하는 단계
+- 이때 사용하는 것이 바로 리플렉션의 `callBy()` 함수야
+- `callBy()` 란?
+    - `KFunction.callBy()`는 함수(또는 생성자)의 파라미터에 이름 기반으로 인자 값을 매핑해 호출할 수 있게 해주는 함수.
+    - 모든 파라미터를 순서대로 줄 필요 없이, 이름만 맞으면 일부 파라미터 생략도 가능 (기본값이 있는 경우).
+</details>
