@@ -1006,3 +1006,44 @@ data class User(val name: String)
     - `KFunction.callBy()`는 함수(또는 생성자)의 파라미터에 이름 기반으로 인자 값을 매핑해 호출할 수 있게 해주는 함수.
     - 모든 파라미터를 순서대로 줄 필요 없이, 이름만 맞으면 일부 파라미터 생략도 가능 (기본값이 있는 경우).
 </details>
+<hr>
+<details>
+<summary><strong>13.1 API에서 DSL로: 표현력이 좋은 커스텀 코드 구조 만들기 (생략)</strong></summary>
+	
+- DSL이란?
+    - DSL (Domain-Specific Language): 특정 도메인을 위한 작고 표현력 있는 언어
+    - 코틀린의 람다와 확장 함수, 인포크 연산자, 수신 객체 등을 이용하면 마치 언어처럼 보이는 API를 만들 수 있음
+
+```kotlin
+fun createHtml(): Element {
+    val table = Element("table")
+    val row = Element("tr")
+    row.add(Element("td", "Hello"))
+    table.add(row)
+    return table
+}
+```
+
+- DSL 스타일로 전환 (아래 코드)
+
+```kotlin
+html {
+    table {
+        tr {
+            td { +"Hello" }
+        }
+    }
+}
+```
+
+## 13.1.1 도메인 특화 언어
+
+- 가독성 향상: 도메인 전문가도 이해할 수 있는 코드 작성 가능
+- 중복 제거: 코드 구조가 간결해짐
+- 코드 → 구성 정보로 활용: 설정 파일, 템플릿 등에서 활용 가능
+- HTML/XML 구성 (`html { ... }`)
+- UI 레이아웃 구성 (Compose, Anko 등)
+- 테스트 스크립트 (e.g. shouldBe, given { when { then } })
+- 빌드 도구 (Gradle Kotlin DSL)
+- 데이터 처리 파이프라인 (e.g. pipeline { step { ... } })
+</details>
